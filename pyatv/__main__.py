@@ -236,10 +236,21 @@ class PushListener:
         print(20*'-', flush=True)
 
     @staticmethod
-    def playstatus_error(updater, exception):
+    def playstatus_error(_, exception):
         """Inform about an error and restart push updates."""
         print("An error occurred (restarting): {0}".format(exception))
-        updater.start(initial_delay=1)
+
+
+class DeviceListener(interface.DeviceListener):
+    """Internal listener for generic device updates."""
+
+    def connection_lost(self, exception):
+        """Call when unexpectedly being disconnected from device."""
+        print("Connection lost with error:", str(exception), file=sys.stderr)
+
+    def connection_closed(self):
+        """Call when connection was (intentionally) closed."""
+        logging.debug("Connection was closed properly")
 
 
 def _in_range(lower, upper, allow_none=False):
@@ -430,6 +441,7 @@ async def _handle_commands(args, loop):
             args.id, credentials=args.airplay_credentials))
 
     atv = await pyatv.connect(config, loop, protocol=args.protocol)
+    atv.listener = DeviceListener()
     atv.push_updater.listener = PushListener()
 
     try:
